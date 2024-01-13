@@ -1,0 +1,85 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+    compatible = "allwinner,sun8i-h3";
+
+    fragment@0 {
+        target = <&spi1>;
+        __overlay__ {
+            status = "okay";
+
+            spidev@0{
+                status = "disabled";
+            };
+
+            spidev@1{
+                status = "disabled";
+            };
+        };
+    };
+
+    fragment@1 {
+        target = <&pio>;
+        __overlay__ {
+            opiz_display_pins: opiz_display_pins {
+                pins = "PA2", "PA10", "PA18";
+                function = "gpio_out";
+            };
+        };
+    };
+
+    fragment@2 {
+        target = <&spi1>;
+        __overlay__ {
+            /* needed to avoid dtc warning */
+            #address-cells = <1>;
+            #size-cells = <0>;
+
+            opizdisplay: opiz-display@0{
+                compatible = "sitronix,st7789v";
+                reg = <0>;
+                pinctrl-names = "default";
+                pinctrl-0 = <&opiz_display_pins>;
+
+                spi-max-frequency = <32000000>;
+                rotate = <270>;
+                fps = <30>;
+                buswidth = <8>;
+                reset-gpios = <&pio 0 10 1>;
+                dc-gpios = <&pio 0 2 0>;
+
+                /* don't bind the backlight to the display, we'll access the
+                    GPIO pin directly from software */
+                /* led-gpios = <&pio 0 18 0>; */
+
+                width = <240>;
+                height = <320>;
+
+                debug = <4>;
+
+                // mode3 = (cpol | cpha)
+                spi-cpol;
+                spi-cpha;
+
+                init = <0x1000001
+                    0x1000011
+                    0x2000078
+                    0x1000036 0x00
+                    0x100003a 0x05
+                    0x10000b2 0x05 0x05 0x00 0x33 0x33
+                    0x10000b7 0x75
+                    0x10000c2 0x01 0xff
+                    0x10000c3 0x13
+                    0x10000c4 0x20
+                    0x10000bb 0x22
+                    0x10000c5 0x20
+                    0x10000d0 0xa4 0xa1
+                    0x1000033 0x00
+                    0x1000037 0x00 0x00
+                    0x1000029
+                    0x1000021>;
+            };
+        };
+    };
+};

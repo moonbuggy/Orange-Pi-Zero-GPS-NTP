@@ -1,0 +1,27 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+        compatible = "xunlong,orangepi-zero", "allwinner,sun8i-h2-plus";
+
+        fragment@0 {
+                target-path = "/aliases";
+
+                __overlay__ {
+                        rtc0 = "/soc/i2c@1c2b400/ds3231";
+                };
+        };
+
+
+        fragment@1 {
+                target-path = "/soc/i2c@1c2b400";
+
+                __overlay__ {
+                        ds3231: rtc@68 {
+                                compatible = "maxim,ds3231";
+                                reg = <0x68>;
+                                #clock-cells = <1>;
+                        };
+                };
+        };
+};
