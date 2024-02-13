@@ -6,6 +6,7 @@
 
     fragment@0 {
         target = <&spi1>;
+
         __overlay__ {
             status = "okay";
 
@@ -21,6 +22,7 @@
 
     fragment@1 {
         target = <&pio>;
+
         __overlay__ {
             opiz_display_pins: opiz_display_pins {
                 pins = "PA2", "PA10", "PA18";
@@ -31,6 +33,7 @@
 
     fragment@2 {
         target = <&spi1>;
+
         __overlay__ {
             /* needed to avoid dtc warning */
             #address-cells = <1>;
@@ -54,7 +57,7 @@
                 /* led-gpios = <&pio 0 18 0>; */
 
                 width = <240>;
-                height = <280>;
+                height = <320>;
 
                 debug = <4>;
 
@@ -76,7 +79,7 @@
                     0x10000c5 0x20
                     0x10000d0 0xa4 0xa1
                     0x1000033 0x00
-                    0x1000037 0x01 0x2c
+                    0x1000037 0x00 0x00
                     0x1000029
                     0x1000021>;
             };

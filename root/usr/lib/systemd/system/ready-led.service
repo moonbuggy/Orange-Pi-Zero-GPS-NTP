@@ -1,0 +1,13 @@
+[Unit]
+Description='ready' status indicator LED
+After=chrony.service gpsd.service gpsd.socket
+Requires=chrony.service gpsd.service gpsd.socket
+
+[Service]
+Type=oneshot
+ExecStart=gpioset 0 19=0
+ExecStop=gpioset 0 19=1
+RemainAfterExit=yes
+
+[Install]
+WantedBy=ready.target

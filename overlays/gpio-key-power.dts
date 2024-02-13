@@ -1,0 +1,42 @@
+/dts-v1/;
+/plugin/;
+
+/* This overlay signals KEY_POWER when a pin is pulled low, triggering a
+   shutdown of the OS.
+
+   See: https://www.kernel.org/doc/Documentation/devicetree/bindings/input/gpio-keys.txt
+*/
+
+/ {
+	compatible = "allwinner,sun4i-a10", "allwinner,sun7i-a20", "allwinner,sun8i-h3", "allwinner,sun50i-a64", "allwinner,sun50i-h5";
+
+	fragment@0 {
+		target = <&pio>;
+
+		__overlay__ {
+			gpio_button_0: gpio_button_0 {
+				pins = "PA7";
+				function = "gpio_in";
+				bias-pull-up;
+			};
+		};
+	};
+
+	fragment@1 {
+		target-path = "/";
+
+		__overlay__ {
+			gpio-keys {
+				compatible = "gpio-keys";
+				pinctrl-names = "default";
+				pinctrl-0 = <&gpio_button_0>;
+
+				power_button {
+					label = "GPIO Power Key";
+					linux,code = <116>; /* KEY_POWER, see include/uapi/linux/input-event-codes.h */
+					gpios = <&pio 0 7 1>;
+				};
+			};
+		};
+	};
+};

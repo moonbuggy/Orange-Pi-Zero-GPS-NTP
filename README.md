@@ -14,22 +14,21 @@ display and the other devices.
     +   [Assembled](#assembled)
     +   [Components](#components)
         -   [Orange Pi Zero](#orange-pi-zero)
-        -   [GPS (NEO-M8N)](#gps--neo-m8n-)
+        -   [GPS (NEO-M8N)](#gps-neo-m8n)
         -   [TFT display (ST7789V driver)](#tft-display-st7789v-driver)
         -   [Real-time Clock (DS3231)](#real-time-clock-ds3231)
+        -   [Power Switch](#power-switch)
     +   [Wiring](#wiring)
         -   [Schematic](#schematic)
         -   [Cable](#cable)
 *   [Software](#software)
     +   [Armbian](#armbian)
         -   [Custom Devive Tree Overlays](#custom-devive-tree-overlays)
+    +   [Status LED](#status-led)
     +   [gpsd](#gpsd)
     +   [chrony](#chrony)
     +   [fbgpsclock](#fbgpsclock)
-*   [To Do](#to-do)
 *   [Links](#links)
-    +   [Software](#software)
-    +   [Datasheets](#datasheets)
 
 ## Hardware
 ### Assembled
@@ -132,6 +131,30 @@ The DS3231 is a good option for a cheap and easy I2C RTC module.
 </a><br/>
 <em>DS3231 RTC module</em></p>
 
+#### Power Switch
+A power switch from [moonbuggy/GPIO-power-switch][moonbuggy/GPIO-power-switch]
+lets us properly shutdown and cut power to the whole enclosure (including the GPS
+module and bias tee).
+
+Making use of the remaining free pins in the cable, we can use the following:
+
+|    signal     | pin | GPIO |
+|:-------------:|:---:|:----:|
+| GPIO_POWEROFF | 21  | PA16 |
+| KEY_POWER     | 12  | PA07 |
+| READY_SIGNAL  | 16  | PA19 |
+
+> [!NOTE]
+> The _GPIO_SHUTDOWN_ signal requires `CONFIG_POWER_RESET_GPIO` and
+> `CONFIG_POWER_RESET_GPIO_RESTART` to be enabled in the kernel, which may not
+> be the case for a default OS install.
+
+Due to pin 16 (_PA19_) having an internal pull-up resistor, we'll use the verson
+of the power switch with the active low LED so the default LED state at power
+up is _not-ready_.
+
+More details are available at [moonbuggy/GPIO-power-switch][moonbuggy/GPIO-power-switch].
+
 ### Wiring
 #### Schematic
 <p><a href="images/schematic-gpio.png">
@@ -147,20 +170,22 @@ directly in.
 <p><a href="images/schematic-cable-2.0inch.png">
   <img src="images/schematic-cable-2.0inch.png" width="600">
 </a><br/>
-<em>GPS + 2.0" TFT cable schematic</em></p>
+<em>GPS + 2.0" TFT + power control cable schematic</em></p>
 
 > [!NOTE]
 > The cable is wired for the specific attached devices. The OPiZ end is static,
 > but the other connectors will need to be adjusted to match the pinout of the
 > particular TFT and GPS modules in use.
 
-The connectors are standard pin sockets, with a 2x8 socket being used for the
-OPiZ end 1x5 and 1x8 sockets on the GPS and TFT modules respectively.
+Most of the connectors are standard pin sockets, with a 2x8 socket being used
+for the OPiZ end 1x5 and 1x8 sockets on the GPS and TFT modules respectively.
+A JST XH2.54 connector is used for the GPIO signals to/from the power control
+board.
 
-<p><a href="images/cable-GPS-TFT.jpg">
-  <img src="images/cable-GPS-TFT.jpg" width="600">
+<p><a href="images/cable-GPS-TFT-power.jpg">
+  <img src="images/cable-GPS-TFT-power.jpg" width="600">
 </a><br/>
-<em>GPS + TFT cable</em></p>
+<em>GPS + TFT + power control cable</em></p>
 
 The OPiZ end of the cable will attach to GPIO pins 11 to 26. Using a
 black wire for the ground connection to OPiZ pin 25 provides a convenient way to
@@ -168,7 +193,7 @@ align the connector, regardless of the other wire colours.
 
 ## Software
 ### Armbian
-We need to enable the _i2c1_, _pps-gpio_, _tve_ and _uart2_ devices. It probably
+We need to enable the _i2c0_, _pps-gpio_, _tve_ and _uart2_ devices. It probably
 makes sense to enable _clock-1.2GHz-1.3v_ as well, if it isn't by default. This
 can be done in `armbian-config` or by editing _/boot/armbianEnv.txt_.
 
@@ -187,12 +212,18 @@ The most relevant areas, if we're modifying these DTS files for a different
 display, are `opiz_display_pins` and the width, height and _0x1000037_ values
 in `opizdisplay`.
 
-The RTC DTS is for a DS3231N connected to _i2c1_ (pins 3 and 5).
+The RTC DTS is for a DS3231N connected to _i2c0_ (pins 3 and 5).
+
+The _gpio-key-power.dts_ overlay allows a physical button to turn the SBC on
+(by pulling pin 12/PA07 low), and the _sun8i-h3-gpio-poweroff.dts_ overlay
+allows the OS to signal it has shutdown (by pulling pin 21/PA16 high).
 
 To install, pick the appropriate DTS for the display, then:
 ```sh
 sudo armbian-add-overlay st7789v-<res>.dts
 sudo armbian-add-overlay rtc-ds3231n.dts
+sudo armbian-add-overlay gpio-key-power.dts
+sudo armbian-add-overlay sun8i-h3-gpio-poweroff.dts
 ```
 
 ##### Display Driver Init
@@ -218,6 +249,45 @@ space top and bottom. Moving just 20px moves in the wrong direction. Converting
 The _240x320_ DTS is just using the kernel driver's default init unmodified. The
 `init` section probably doesn't need to be in this DTS, but it's a convenient
 reference for the defaults.
+
+### Status LED
+If using the [moonbuggy/GPIO-power-switch][moonbuggy/GPIO-power-switch] module,
+the status LED can be changed from red to green to indicate the device is ready
+by pulling pin 16 (_PA19_) low. In this case we'll indicate 'ready' with a
+systemd service, once both the _gpsd_ and _chrony_ services are running.
+
+##### /usr/lib/systemd/system/ready.target
+```ini
+[Unit]
+Description=System is booted and ready (for toggling status LED)
+Requires=chrony.service gpsd.service gpsd.socket multi-user.target
+After=chrony.service gpsd.service gpsd.socket multi-user.target
+AllowIsolate=yes
+```
+
+##### /usr/lib/systemd/system/ready-led.service
+```ini
+[Unit]
+Description='ready' status indicator LED
+After=chrony.service gpsd.service gpsd.socket
+Requires=chrony.service gpsd.service gpsd.socket
+
+[Service]
+Type=oneshot
+ExecStart=gpioset 0 19=0
+ExecStop=gpioset 0 19=1
+RemainAfterExit=yes
+
+[Install]
+WantedBy=ready.target
+```
+
+To enable the service:
+```sh
+sudo systemctl daemon-reload
+sudo systemctl enable ready-led
+sudo systemctl set-default ready.target
+```
 
 ### gpsd
 #### Installation
@@ -248,6 +318,13 @@ The GPS device may need to be configured to run at 115200bps, with commands
 appropriate for the particular device. Alternatively, the serial port could be
 run at a slower speed, but I found my _u-block NEO M8N_ defaulted to 9600bps
 and this was slow enough to generate complaints in logs about missing data.
+
+Once configured:
+```sh
+sudo systemctl daemon-reload
+sudo systemctl enable gpsd
+sudo systemctl start gpsd
+```
 
 ### chrony
 #### Installation
@@ -290,7 +367,8 @@ time and GPS information on the TFT display.
 <em>fbgpsclock screenshot</em></p>
 
 #### Installation
-Check build dependencies are installed (this isn't a complete dependency list):
+Check build dependencies are installed (this may not be a complete dependency
+list):
 ```sh
 sudo apt install gcc libgps-dev make
 ```
@@ -307,16 +385,12 @@ sudo systemctl start fbgpsclock
 
 More detail and configuration information is available at [moonbuggy/fbgpsclock][moonbuggy/fbgpsclock].
 
-## To Do
-+   power/reset button and status LED - seems simple enough, but suddenly
-    there's at least one MOSFET and an SR latch involved. A dual LED to indicate
-    'powered' and 'booted/ready' as separate states, similar to
-    [Opti-UPS Expansion Slot Single Board Computer](https://github.com/moonbuggy/Opti-UPS-expansion-slot-SBC),
-    will plug in to the power control circuit easily enough.
-
 ## Links
 ### Software
 *   [moonbuggy/fbgpsclock][moonbuggy/fbgpsclock]
+
+### Hardware
+*   [moonbuggy/GPIO-power-switch][moonbuggy/GPIO-power-switch]
 
 ### Datasheets
 *   [DS3231](https://www.analog.com/media/en/technical-documentation/data-sheets/DS3231.pdf)
@@ -324,3 +398,4 @@ More detail and configuration information is available at [moonbuggy/fbgpsclock]
 *   [ST7789V](https://newhavendisplay.com/content/datasheets/ST7789V.pdf)
 
 [moonbuggy/fbgpsclock]: https://github.com/moonbuggy/fbgpsclock
+[moonbuggy/GPIO-power-switch]: https://github.com/moonbuggy/GPIO-power-switch

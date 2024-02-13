@@ -1,0 +1,57 @@
+/dts-v1/;
+/plugin/;
+
+/* This overlay will pull a pin high to signal the OS has shutdown and
+   it's safe to cut power to the board (and the rest of the enclosure).
+
+   Pulling high on shutdown is better than pulling low because once
+   power has been cut the high signal will fall back to low. This means
+   an SR latch won't have behave in an undefined manner when a "power
+   on" button is pressed to restore power to the enclosure, as the
+   "power off" signal will clear itself.
+
+   CONFIG_POWER_RESET_GPIO and CONFIG_POWER_RESET_GPIO_RESTART need to
+   be enabled in the kernel for this to work.
+
+   See: https://www.kernel.org/doc/Documentation/devicetree/bindings/power/reset/gpio-poweroff.txt
+*/
+
+/ {
+	compatible = "allwinner,sun8i-h3";
+
+	/* we need to take an unused pin away from the spi1 bus */
+	fragment@0 {
+		target = <&spi1_pins>;
+
+		__overlay__ {
+			pins = "PA15\0PA14\0PA13";
+		};
+	};
+
+	fragment@1 {
+		target = <&pio>;
+
+		__overlay__ {
+			power_off_pin: power_off_pin {
+				pins = "PA16";
+				function = "gpio_out";
+				bias-pull-down;
+			};
+		};
+	};
+
+	fragment@2 {
+		target-path = "/";
+
+		__overlay__ {
+			gpio-poweroff {
+				compatible = "gpio-poweroff";
+				pinctrl-names = "default";
+				pinctrl-0 = <&power_off_pin>;
+				gpios = <&pio 0 16 1>;
+				status = "okay";
+				input;
+			};
+		};
+	};
+};
