@@ -67,14 +67,14 @@ GPS_Tx
 Text Label 5850 3100 0    50   ~ 0
 GPS_Rx
 Wire Notes Line
-	3950 5000 7900 5000
+	3950 5050 7900 5050
 Wire Notes Line
-	7900 5000 7900 2700
+	7900 5050 7900 2700
 Wire Notes Line
 	7900 2700 3950 2700
 Wire Notes Line
-	3950 2700 3950 5000
-Text Notes 6200 4900 0    50   ~ 0
+	3950 2700 3950 5050
+Text Notes 5350 5000 0    79   ~ 0
 Orange Pi Zero <-> GPS and TFT cable
 Wire Wire Line
 	4200 4100 4600 4100

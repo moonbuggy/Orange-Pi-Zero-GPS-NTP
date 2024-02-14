@@ -21,13 +21,15 @@ display and the other devices.
     +   [Wiring](#wiring)
         -   [Schematic](#schematic)
         -   [Cable](#cable)
+        -   [Power Splitter](#power-splitter)
 *   [Software](#software)
-    +   [Armbian](#armbian)
-        -   [Custom Devive Tree Overlays](#custom-devive-tree-overlays)
-    +   [Status LED](#status-led)
-    +   [gpsd](#gpsd)
-    +   [chrony](#chrony)
-    +   [fbgpsclock](#fbgpsclock)
+    +   [Pre-built OS Image](#pre-built-os-image)
+    +   [Manual Configuration](#manual-configuration)
+        -   [Armbian](#armbian)
+        -   [Status LED](#status-led)
+        -   [gpsd](#gpsd)
+        -   [chrony](#chrony)
+        -   [fbgpsclock](#fbgpsclock)
 *   [Links](#links)
 
 ## Hardware
@@ -57,8 +59,8 @@ display and the other devices.
 </a><br/>
 <em>side</em></p>
 
-There's also [gallery __(NSFW)__](https://imgur.com/a/yd1e8r0) with some images
-from various stages of testing and building.
+There's also [a gallery __(NSFW)__](https://imgur.com/a/yd1e8r0) with some
+images from various stages of testing and building.
 
 ### Components
 #### Orange Pi Zero
@@ -163,9 +165,9 @@ More details are available at [moonbuggy/GPIO-power-switch][moonbuggy/GPIO-power
 <em>GPIO wiring</em></p>
 
 #### Cable
-The specific pins chosen allow us to make a convenient cable to connect the GPS
-and TFT modules while leaving the I2C pins clear for the RTC module to plug
-directly in.
+The specific pins chosen allow us to make a convenient cable to connect the GPS,
+TFT and power control modules while leaving the I2C pins clear for the RTC
+module to plug directly in.
 
 <p><a href="images/schematic-cable-2.0inch.png">
   <img src="images/schematic-cable-2.0inch.png" width="600">
@@ -191,8 +193,55 @@ The OPiZ end of the cable will attach to GPIO pins 11 to 26. Using a
 black wire for the ground connection to OPiZ pin 25 provides a convenient way to
 align the connector, regardless of the other wire colours.
 
+#### Power Splitter
+<p><a href="images/schematic-splitter.png">
+  <img src="images/schematic-splitter.png" width="600">
+</a><br/>
+<em>power splitter</em></p>
+
+In an ideal world there'd be enough room in the enclosure to combine this
+splitter and the power control circuit on a single PCB, to save a cable run
+(although it's not a big deal that they're separate).
+
+Closing the jumper bypasses the switch in the power control circuit, directly
+connecting the OPiZ and bias tee to ground, and is useful during testing. The
+button and LED in the power control circuit will still work as expected, and
+the MOSFET will still switch, it just won't have any effect and actually cut
+power after a <code>shutdown -h</code> command or button press.
+
 ## Software
-### Armbian
+### Pre-built OS Image
+There's a pre-built Armbian image in the
+[releases](https://github.com/moonbuggy/Orange-Pi-Zero-GPS-NTP/releases/latest)
+which will work out of the box for a build using the same (or compatible)
+hardware wired as described above. All the setup and configuration steps below
+have been done during the image creation.
+
+Simply write the _*.img.xz_ file to an SD card, put the card in the OPiZ, power
+it up.
+
+GPS devices other than the Neo M8N should work easily with this image, so long
+as they use _uart2_ (and use _pin 15_/_PA03_ for the PPS signal). A different
+display controller or RTC, however, would be incompatible with the device tree
+in the image.
+
+It's possible to re-configure the pre-built OS after first boot, if necessary
+to adjust for differing hardware. Depending on how much modification is needed,
+it may be easier to start with a bare OS and do the manual steps described
+below.
+
+#### Packages
+The _*.deb_ files in the release are packages which can be installed on top of
+an existing Armbian install, as an alternative to the pre-built image.
+
+These packages just add the modules necessary for the GPIO power switch to work
+to the kernel. They do not install any GPS/NTP/TFT software or handle any of the
+configuration like the image does.
+
+Install with: <code>sudo dpkg -i *.deb</code>
+
+### Manual Configuration
+#### Armbian
 We need to enable the _i2c0_, _pps-gpio_, _tve_ and _uart2_ devices. It probably
 makes sense to enable _clock-1.2GHz-1.3v_ as well, if it isn't by default. This
 can be done in `armbian-config` or by editing _/boot/armbianEnv.txt_.
@@ -203,7 +252,7 @@ regardless of how the hardware overlays above are enabled:
 sudo sh -c "echo 'param_pps_pin=PA3' >> /boot/armbianEnv.txt"
 ```
 
-#### Custom Devive Tree Overlays
+##### Custom Devive Tree Overlays
 The device tree source (DTS) files in this repo for the display are for an
 ST7789V SPI TFT controller with a 240x280 or 240x320 display. They can be
 modified for other resolutions.
@@ -226,7 +275,7 @@ sudo armbian-add-overlay gpio-key-power.dts
 sudo armbian-add-overlay sun8i-h3-gpio-poweroff.dts
 ```
 
-##### Display Driver Init
+###### Display Driver Init
 Both DTS files contain a custom init for the driver. This init sequence is based
 off that in the kernel driver (as opposed to that in the ST7789V datasheet,
 which differs in some places), with only the _VSCSAD (37h): Vertical Scroll
@@ -250,27 +299,27 @@ The _240x320_ DTS is just using the kernel driver's default init unmodified. The
 `init` section probably doesn't need to be in this DTS, but it's a convenient
 reference for the defaults.
 
-### Status LED
+#### Status LED
 If using the [moonbuggy/GPIO-power-switch][moonbuggy/GPIO-power-switch] module,
 the status LED can be changed from red to green to indicate the device is ready
 by pulling pin 16 (_PA19_) low. In this case we'll indicate 'ready' with a
 systemd service, once both the _gpsd_ and _chrony_ services are running.
 
-##### /usr/lib/systemd/system/ready.target
+###### /usr/lib/systemd/system/ready.target
 ```ini
 [Unit]
 Description=System is booted and ready (for toggling status LED)
-Requires=chrony.service gpsd.service gpsd.socket multi-user.target
-After=chrony.service gpsd.service gpsd.socket multi-user.target
+Requires=fbgpsclock.service chrony.service gpsd.service gpsd.socket multi-user.target
+After=fbgpsclock.service chrony.service gpsd.service gpsd.socket multi-user.target
 AllowIsolate=yes
 ```
 
-##### /usr/lib/systemd/system/ready-led.service
+###### /usr/lib/systemd/system/ready-led.service
 ```ini
 [Unit]
 Description='ready' status indicator LED
-After=chrony.service gpsd.service gpsd.socket
-Requires=chrony.service gpsd.service gpsd.socket
+After=fbgpsclock.service chrony.service gpsd.service gpsd.socket
+Requires=fbgpsclock.service chrony.service gpsd.service gpsd.socket
 
 [Service]
 Type=oneshot
@@ -289,8 +338,8 @@ sudo systemctl enable ready-led
 sudo systemctl set-default ready.target
 ```
 
-### gpsd
-#### Installation
+#### gpsd
+##### Installation
 ```sh
 sudo apt install gpsd
 
@@ -298,9 +347,9 @@ sudo apt install gpsd
 sudo apt install gpsd-tools pps-tools
 ```
 
-##### /etc/default/gpsd
+###### /etc/default/gpsd
 ```ini
-# Devices gpsd should collect to at boot time.
+# Devices gpsd should connect to at boot time.
 # They need to be read/writeable, either by user gpsd or the group dialout.
 DEVICES="/dev/ttyS2 /dev/pps0"
 
@@ -326,13 +375,13 @@ sudo systemctl enable gpsd
 sudo systemctl start gpsd
 ```
 
-### chrony
-#### Installation
+#### chrony
+##### Installation
 ```sh
 sudo apt install chrony
 ```
 
-##### /etc/chrony/conf.d/gpsd.conf
+###### /etc/chrony/conf.d/gpsd.conf
 ```ini
 refclock SHM 0 refid NMEA offset 0.110
 refclock PPS /dev/pps0 refid PPS lock NMEA
@@ -347,7 +396,7 @@ The default configuration for the RTC is for chrony to tell the system to set it
 every 11 minutes. To let chrony set the time from the RTC (as a backup if
 there's some issue with the GPS), it needs to be run with the `-s` argument.
 
-##### /etc/default/chrony
+###### /etc/default/chrony
 ```sh
 # This is a configuration file for /etc/init.d/chrony and
 # /lib/systemd/system/chrony.service; it allows you to pass various options to
@@ -357,7 +406,7 @@ there's some issue with the GPS), it needs to be run with the `-s` argument.
 DAEMON_OPTS="-F 1 -r -m -s"
 ```
 
-### fbgpsclock
+#### fbgpsclock
 The [fbgpsclock][moonbuggy/fbgpsclock] repo contains software for displaying
 time and GPS information on the TFT display.
 
@@ -366,7 +415,7 @@ time and GPS information on the TFT display.
 </a><br/>
 <em>fbgpsclock screenshot</em></p>
 
-#### Installation
+##### Installation
 Check build dependencies are installed (this may not be a complete dependency
 list):
 ```sh
@@ -388,6 +437,7 @@ More detail and configuration information is available at [moonbuggy/fbgpsclock]
 ## Links
 ### Software
 *   [moonbuggy/fbgpsclock][moonbuggy/fbgpsclock]
+*   [moonbuggy/sbc-os-images][moonbuggy/sbc-os-images]
 
 ### Hardware
 *   [moonbuggy/GPIO-power-switch][moonbuggy/GPIO-power-switch]
@@ -398,4 +448,5 @@ More detail and configuration information is available at [moonbuggy/fbgpsclock]
 *   [ST7789V](https://newhavendisplay.com/content/datasheets/ST7789V.pdf)
 
 [moonbuggy/fbgpsclock]: https://github.com/moonbuggy/fbgpsclock
+[moonbuggy/sbc-os-images]: https://github.com/moonbuggy/sbc-os-images
 [moonbuggy/GPIO-power-switch]: https://github.com/moonbuggy/GPIO-power-switch

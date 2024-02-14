@@ -1,17 +1,16 @@
 /dts-v1/;
 /plugin/;
 
-/* This overlay will pull a pin high to signal the OS has shutdown and
-   it's safe to cut power to the board (and the rest of the enclosure).
+/* This overlay will pull a pin high to signal the OS has shutdown and it's safe
+   to cut power to the board (and the rest of the enclosure).
 
-   Pulling high on shutdown is better than pulling low because once
-   power has been cut the high signal will fall back to low. This means
-   an SR latch won't have behave in an undefined manner when a "power
-   on" button is pressed to restore power to the enclosure, as the
-   "power off" signal will clear itself.
+   Pulling high on shutdown is better than pulling low because once power has
+   been cut the high signal will fall back to low. This means an SR latch won't
+   behave in an undefined manner when a "power on" button is pressed to restore
+   power to the enclosure, as the "power off" signal will clear itself.
 
-   CONFIG_POWER_RESET_GPIO and CONFIG_POWER_RESET_GPIO_RESTART need to
-   be enabled in the kernel for this to work.
+   CONFIG_POWER_RESET_GPIO and CONFIG_POWER_RESET_GPIO_RESTART need to be
+   enabled in the kernel for this to work.
 
    See: https://www.kernel.org/doc/Documentation/devicetree/bindings/power/reset/gpio-poweroff.txt
 */

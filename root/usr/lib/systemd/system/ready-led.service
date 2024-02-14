@@ -1,7 +1,7 @@
 [Unit]
 Description='ready' status indicator LED
-After=chrony.service gpsd.service gpsd.socket
-Requires=chrony.service gpsd.service gpsd.socket
+After=fbgpsclock.service chrony.service gpsd.service gpsd.socket
+Requires=fbgpsclock.service chrony.service gpsd.service gpsd.socket
 
 [Service]
 Type=oneshot
