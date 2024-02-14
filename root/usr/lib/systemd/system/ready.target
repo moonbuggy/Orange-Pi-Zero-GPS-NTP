@@ -1,5 +1,5 @@
 [Unit]
 Description=System is booted and ready (for toggling status LED)
-Requires=chrony.service gpsd.service gpsd.socket multi-user.target
-After=chrony.service gpsd.service gpsd.socket multi-user.target
+Requires=fbgpsclock.service chrony.service gpsd.service gpsd.socket multi-user.target
+After=fbgpsclock.service chrony.service gpsd.service gpsd.socket multi-user.target
 AllowIsolate=yes

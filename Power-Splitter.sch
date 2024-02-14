@@ -3,7 +3,7 @@ EELAYER 30 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
-Sheet 5 4
+Sheet 4 4
 Title ""
 Date ""
 Rev ""
@@ -29,7 +29,7 @@ L Connector_Generic:Conn_01x03 J10
 U 1 1 65C488D1
 P 5300 3600
 F 0 "J10" V 5264 3412 50  0000 R CNN
-F 1 "Power Switch" V 5173 3412 50  0000 R CNN
+F 1 "Power Control" V 5173 3412 50  0000 R CNN
 F 2 "Connectors_JST:JST_XH_B03B-XH-A_03x2.50mm_Straight" H 5300 3600 50  0001 C CNN
 F 3 "~" H 5300 3600 50  0001 C CNN
 	1    5300 3600
@@ -49,12 +49,12 @@ $EndComp
 $Comp
 L Connector_Generic:Conn_01x02 J12
 U 1 1 65C48BD5
-P 6850 3600
-F 0 "J12" V 6814 3412 50  0000 R CNN
-F 1 "Bias Tee" V 6723 3412 50  0000 R CNN
-F 2 "Connectors_JST:JST_XH_B02B-XH-A_02x2.50mm_Straight" H 6850 3600 50  0001 C CNN
-F 3 "~" H 6850 3600 50  0001 C CNN
-	1    6850 3600
+P 6750 3600
+F 0 "J12" V 6714 3412 50  0000 R CNN
+F 1 "Bias Tee" V 6623 3412 50  0000 R CNN
+F 2 "Connectors_JST:JST_XH_B02B-XH-A_02x2.50mm_Straight" H 6750 3600 50  0001 C CNN
+F 3 "~" H 6750 3600 50  0001 C CNN
+	1    6750 3600
 	0    -1   -1   0   
 $EndComp
 Wire Wire Line
@@ -62,9 +62,9 @@ Wire Wire Line
 Wire Wire Line
 	5300 4050 5300 3800
 Wire Wire Line
-	6950 3800 6950 4050
+	6850 3800 6850 4050
 Wire Wire Line
-	6950 4050 6300 4050
+	6850 4050 6300 4050
 Wire Wire Line
 	6300 3800 6300 4050
 Connection ~ 6300 4050
@@ -75,12 +75,12 @@ Wire Wire Line
 Wire Wire Line
 	5400 3900 6200 3900
 Wire Wire Line
-	6850 3900 6850 3800
+	6750 3900 6750 3800
 Wire Wire Line
 	6200 3800 6200 3900
 Connection ~ 6200 3900
 Wire Wire Line
-	6200 3900 6850 3900
+	6200 3900 6750 3900
 Text Label 4850 3900 0    50   ~ 0
 GND
 Wire Wire Line
@@ -100,8 +100,8 @@ $Comp
 L Jumper:Jumper_2_Open JP1
 U 1 1 65C4DC8A
 P 5000 4250
-F 0 "JP1" H 5000 4100 50  0000 C CNN
-F 1 "Jumper_2_Open" H 5000 4000 50  0000 C CNN
+F 0 "JP1" H 5000 4150 50  0000 C CNN
+F 1 "Bypass Jumper" H 5000 4050 50  0000 C CNN
 F 2 "Pin_Headers:Pin_Header_Straight_1x02_Pitch2.54mm" H 5000 4250 50  0001 C CNN
 F 3 "~" H 5000 4250 50  0001 C CNN
 	1    5000 4250
@@ -117,4 +117,14 @@ Wire Wire Line
 Wire Wire Line
 	5400 4250 5400 3900
 Connection ~ 5400 3900
+Wire Notes Line
+	4500 3450 7350 3450
+Wire Notes Line
+	7350 3450 7350 4550
+Wire Notes Line
+	4500 4550 4500 3450
+Text Notes 6400 4450 0    79   ~ 0
+Power Splitter
+Wire Notes Line
+	7350 4550 4500 4550
 $EndSCHEMATC
