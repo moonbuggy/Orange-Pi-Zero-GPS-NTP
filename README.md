@@ -1,5 +1,5 @@
 # Orange Pi Zero GPS NTP Server
-An Orange Pi Zero with attached GPS, TFT and RTC devices, to create a straum 1
+An Orange Pi Zero with attached GPS, TFT and RTC devices, to create a stratum 1
 NTP server.
 
 <p><a href="images/enclosed-front.jpg">
@@ -365,7 +365,7 @@ USBAUTO="true"
 
 The GPS device may need to be configured to run at 115200bps, with commands
 appropriate for the particular device. Alternatively, the serial port could be
-run at a slower speed, but I found my _u-block NEO M8N_ defaulted to 9600bps
+run at a slower speed, but I found my _u-blox NEO M8N_ defaulted to 9600bps
 and this was slow enough to generate complaints in logs about missing data.
 
 Once configured:
