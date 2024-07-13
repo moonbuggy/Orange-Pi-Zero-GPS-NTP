@@ -406,6 +406,18 @@ there's some issue with the GPS), it needs to be run with the `-s` argument.
 DAEMON_OPTS="-F 1 -r -m -s"
 ```
 
+The DS3231 RTC will only continue counting time on battery if the
+E̅O̅S̅C̅ and OSF bits in the register
+are clear. Assuming the DS3231 is at 0x68 on bus 0:
+
+```sh
+# E̅O̅S̅C̅
+i2cset -y 0 0x68 0x0e 0x1c
+
+# OSF
+i2cset -y 0 0x68 0x0f 0x08
+```
+
 #### fbgpsclock
 The [fbgpsclock][moonbuggy/fbgpsclock] repo contains software for displaying
 time and GPS information on the TFT display.
