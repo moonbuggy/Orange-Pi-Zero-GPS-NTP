@@ -252,7 +252,7 @@ regardless of how the hardware overlays above are enabled:
 sudo sh -c "echo 'param_pps_pin=PA3' >> /boot/armbianEnv.txt"
 ```
 
-##### Custom Devive Tree Overlays
+##### Custom Device Tree Overlays
 The device tree source (DTS) files in this repo for the display are for an
 ST7789V SPI TFT controller with a 240x280 or 240x320 display. They can be
 modified for other resolutions.
@@ -341,7 +341,7 @@ sudo systemctl set-default ready.target
 #### gpsd
 ##### Installation
 ```sh
-sudo apt install gpsd
+sudo apt install gpsd setserial
 
 # optional tools
 sudo apt install gpsd-tools pps-tools
@@ -381,10 +381,26 @@ sudo systemctl start gpsd
 sudo apt install chrony
 ```
 
+There's a few ways Chrony can talk to gpsd. The shared memory (SHM) method
+requires _Chrony_ to poll for updates, the socket driver (SOCK) doesn't require
+_Chrony_ to poll and on paper should have less overhead. The socket driver
+should also be more accurate than the PPS driver.
+
+Using SOCK for the GPS signal requires gpsd >=3.25, and SOCK generally requires
+_gpsd_ to be started after _Chrony_. Only one GPS and one PPS source needs to be
+enabled.
+
 ###### /etc/chrony/conf.d/gpsd.conf
 ```ini
-refclock SHM 0 refid NMEA offset 0.110
-refclock PPS /dev/pps0 refid PPS lock NMEA
+# using shared memory
+refclock SHM 0 refid GPS offset 0.200 trust
+
+# using PPS driver
+#refclock PPS /dev/pps0 refid PPS lock GPS require
+
+# using socket driver
+#refclock SOCK /run/chrony.ttyS2.sock refid GPS offset 0.200 trust  # requires gpsd >=3.25
+refclock SOCK /run/chrony.pps0.sock refid PPS precision 1e-7 require
 ```
 
 The offset value is estimated from `gpsmon -n`, and should be set to something
@@ -395,6 +411,10 @@ the instantaneous estimate from real-time monitoring.
 The default configuration for the RTC is for chrony to tell the system to set it
 every 11 minutes. To let chrony set the time from the RTC (as a backup if
 there's some issue with the GPS), it needs to be run with the `-s` argument.
+
+To ensure only the GPS and PPS signals are used, the default
+`/etc/chrony/chrony.conf` file be be edited to comment out the sources it
+provides.
 
 ###### /etc/default/chrony
 ```sh
